@@ -14,7 +14,7 @@ import shutil
 # ============================================================
 #  CONFIGURATION - Edit this URL after uploading to cloud
 # ============================================================
-CLOUD_URL = "YOUR_CLOUD_URL_HERE"  # Replace with your download URL
+CLOUD_URL = "https://github.com/biker222/SMSCouponManager/raw/main/sms_package.enc"  # Replace with your download URL
 PASSWORD = "TecnicaSMS2024"
 # ============================================================
 
@@ -66,7 +66,7 @@ def main():
     print("=" * 50)
     print()
 
-    if CLOUD_URL == "YOUR_CLOUD_URL_HERE":
+    if CLOUD_URL == "https://github.com/biker222/SMSCouponManager/raw/main/sms_package.enc":
         print("ERROR: Cloud URL not configured!")
         print()
         print("Please edit sms_loader.py and set CLOUD_URL")
