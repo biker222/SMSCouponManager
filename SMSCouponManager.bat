@@ -1,5 +1,4 @@
 @echo off
-setlocal enabledelayedexpansion
 title SMS Coupon Manager
 color 0A
 
@@ -9,16 +8,16 @@ echo     SMS Coupon Manager - Cloud Edition
 echo  ========================================
 echo.
 
-:: Check for Python
-where python >nul 2>&1
+:: Check for Python - try py launcher first (more reliable on Windows)
+py -3 --version >nul 2>&1
 if %errorlevel% equ 0 (
-    set PYTHON_CMD=python
+    set "PYTHON_CMD=py -3"
     goto :checkdeps
 )
 
-where py >nul 2>&1
+python --version >nul 2>&1
 if %errorlevel% equ 0 (
-    set PYTHON_CMD=py -3
+    set "PYTHON_CMD=python"
     goto :checkdeps
 )
 
@@ -48,9 +47,9 @@ pause
 exit
 
 :checkdeps
-echo  [OK] Python found
+echo  [OK] Python found: %PYTHON_CMD%
 echo  Installing dependencies...
-%PYTHON_CMD% -m pip install PyQt5 pyodbc cryptography --quiet 2>nul
+call %PYTHON_CMD% -m pip install PyQt5 pyodbc cryptography --quiet 2>nul
 echo  [OK] Ready
 echo.
 echo  Downloading from cloud...
@@ -108,7 +107,7 @@ echo os.chdir^(temp_dir^)
 echo sys.path.insert^(0, temp_dir^)
 echo.
 echo try:
-echo     exec^(open^('main.py'^).read^(^), {'__name__': '__main__'}^)
+echo     exec^(open^('main.py', encoding='utf-8'^).read^(^), {'__name__': '__main__'}^)
 echo finally:
 echo     try:
 echo         shutil.rmtree^(temp_dir^)
@@ -116,7 +115,7 @@ echo     except:
 echo         pass
 ) > "%LOADER%"
 
-%PYTHON_CMD% "%LOADER%"
+call %PYTHON_CMD% "%LOADER%"
 del "%LOADER%" 2>nul
 
 if %errorlevel% neq 0 (
