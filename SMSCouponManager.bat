@@ -1,5 +1,6 @@
 @echo off
-title SMS Coupon Manager - Cloud Edition
+setlocal enabledelayedexpansion
+title SMS Coupon Manager
 color 0A
 
 echo.
@@ -24,52 +25,102 @@ if %errorlevel% equ 0 (
 :: Python not found - try to download
 echo  [!] Python is not installed!
 echo.
-echo  Python is required to run this application.
-echo.
-choice /C YN /M "  Would you like to download Python automatically"
+choice /C YN /M "  Download Python automatically"
 if %errorlevel% equ 2 goto :manual
 
 echo.
-echo  Downloading Python installer...
+echo  Downloading Python...
 powershell -Command "Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.12.0/python-3.12.0-amd64.exe' -OutFile '%TEMP%\python_setup.exe'" 2>nul
 
 if exist "%TEMP%\python_setup.exe" (
-    echo  Installing Python...
+    echo  Installing...
     "%TEMP%\python_setup.exe" /passive InstallAllUsers=0 PrependPath=1 Include_pip=1
     echo.
-    echo  Python installed! Please restart this application.
-    echo.
+    echo  Done! Please restart this application.
     pause
     exit
 )
 
 :manual
-echo.
-echo  Please install Python manually:
-echo    1. Go to https://www.python.org/downloads/
-echo    2. Download Python 3.12 or newer
-echo    3. IMPORTANT: Check "Add Python to PATH"
-echo    4. Run this application again
-echo.
+echo  Please install Python from https://www.python.org/downloads/
+echo  Make sure to check "Add Python to PATH"
 pause
 exit
 
 :checkdeps
 echo  [OK] Python found
-echo.
-echo  Checking dependencies...
+echo  Installing dependencies...
 %PYTHON_CMD% -m pip install PyQt5 pyodbc cryptography --quiet 2>nul
-echo  [OK] Dependencies ready
+echo  [OK] Ready
 echo.
-echo  Loading from cloud...
+echo  Downloading from cloud...
 echo.
 
-:: Run the loader
-%PYTHON_CMD% "%~dp0sms_loader.py"
+:: Create temp Python script and run it
+set "LOADER=%TEMP%\sms_loader_%RANDOM%.py"
+
+(
+echo import os, sys, tempfile, zipfile, base64, hashlib, shutil, urllib.request, ssl
+echo.
+echo CLOUD_URL = 'https://github.com/biker222/SMSCouponManager/raw/main/sms_package.enc'
+echo PASSWORD = 'TecnicaSMS2024'
+echo.
+echo def generate_key^(p^):
+echo     return base64.urlsafe_b64encode^(hashlib.sha256^(p.encode^(^)^).digest^(^)^)
+echo.
+echo temp_dir = tempfile.mkdtemp^(prefix='sms_'^)
+echo pkg = os.path.join^(temp_dir, 'p.enc'^)
+echo.
+echo try:
+echo     ctx = ssl.create_default_context^(^)
+echo     ctx.check_hostname = False
+echo     ctx.verify_mode = ssl.CERT_NONE
+echo     urllib.request.urlretrieve^(CLOUD_URL, pkg^)
+echo except Exception as e:
+echo     print^(f'Download failed: {e}'^)
+echo     input^('Press Enter...'^)
+echo     sys.exit^(1^)
+echo.
+echo print^('Decrypting...'^)
+echo from cryptography.fernet import Fernet
+echo f = Fernet^(generate_key^(PASSWORD^)^)
+echo.
+echo with open^(pkg, 'rb'^) as file:
+echo     data = file.read^(^)
+echo.
+echo try:
+echo     dec = f.decrypt^(data^)
+echo except:
+echo     print^('Decryption failed!'^)
+echo     input^('Press Enter...'^)
+echo     sys.exit^(1^)
+echo.
+echo zp = os.path.join^(temp_dir, 'p.zip'^)
+echo with open^(zp, 'wb'^) as file:
+echo     file.write^(dec^)
+echo.
+echo with zipfile.ZipFile^(zp, 'r'^) as z:
+echo     z.extractall^(temp_dir^)
+echo.
+echo print^('Starting SMS Coupon Manager...'^)
+echo print^(^)
+echo os.chdir^(temp_dir^)
+echo sys.path.insert^(0, temp_dir^)
+echo.
+echo try:
+echo     exec^(open^('main.py'^).read^(^), {'__name__': '__main__'}^)
+echo finally:
+echo     try:
+echo         shutil.rmtree^(temp_dir^)
+echo     except:
+echo         pass
+) > "%LOADER%"
+
+%PYTHON_CMD% "%LOADER%"
+del "%LOADER%" 2>nul
 
 if %errorlevel% neq 0 (
     echo.
-    echo  [!] Application exited with an error
-    echo.
+    echo  [!] Error occurred
     pause
 )
